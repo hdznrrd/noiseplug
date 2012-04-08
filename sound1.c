@@ -126,8 +126,9 @@ if(snaredelay>0)	mix ^= (next_rnd() & 7) << 3;
 return mix;
 }
 
+#ifndef NOISEPLUG_BIATCH
 int main()
 {
 	while(1) putchar(next_sample());
 }
-
+#endif
