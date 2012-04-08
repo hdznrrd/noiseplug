@@ -41,14 +41,15 @@ static const PROGMEM struct { uint8_t a; uint8_t b; } synth[] = { { 7, 6}, {7, 5
 static const PROGMEM uint8_t arpeggiobase[] =	{ 3, 4, 4, 5 };
 static const PROGMEM uint8_t bassdrum[] =	{ 1, 1, 1, 1 };
 static const PROGMEM uint8_t snare[] = 	{ 1, 1, 1, 1 };
+static const PROGMEM uint8_t melody[] =
+{
+	D2, 0, D2, 0, 0, 0, 0, 0, D2, 0,
+	A1, 0, B1, 0, D2, 0, D2, 0, D2, 0
+};
 
 static inline uint8_t next_note()
 {
-	static const PROGMEM uint8_t melody[] =
-	{
-		D2, 0, D2, 0, 0, 0, 0, 0, D2, 0, 
-		A1, 0, B1, 0, D2, 0, D2, 0, D2, 0
- };
+
 	static uint8_t idx=0;
 
 	const uint8_t v = melody[idx++];
@@ -74,12 +75,12 @@ static inline uint8_t next_sin(const uint8_t step)
 {
 	static uint8_t sinoff=SO(sin)-1;
 	sinoff += step;
-	sinoff %= SO(sin);
+	sinoff &= SO(sin) - 1;
 	return sin[sinoff];
 }
 
 
-uint8_t next_sample()
+static inline uint8_t next_sample()
 {
 static uint16_t t=0;
 
@@ -90,15 +91,15 @@ static uint8_t bars=0;
 static uint8_t pc = 0;
 static uint8_t arpeggiocnt = 1;
 
-static uint16_t next_sin_time = 0;
+static uint8_t next_sin_time = 0;
 static uint8_t current_tone = 0;
 static uint8_t current_tone_base = 12;
 
-unsigned short snaredelay = 0;
-unsigned short bassdelay = 0;
+static unsigned short snaredelay;
+static unsigned short bassdelay;
 
-uint8_t synth1 = 0;
-uint8_t synth2 = 0;
+static uint8_t synth1;
+static uint8_t synth2;
 
 if(t%1024 == 0)
 {
@@ -135,13 +136,12 @@ if(t % arpeggio_DELAY == 0)
 	// arpeggio
 	++arpeggiocnt;
 	arpeggiocnt &= 3;
-	current_tone = current_tone_base + arpeggiocnt+ arpeggiocnt+ arpeggiocnt+ arpeggiocnt;
+	current_tone = current_tone_base + 4 * arpeggiocnt;
 }
 
 // render synth
 
-synth1 = (t&(t>>(synth[pc].a))) | (t&(t>>(synth[pc].b)));
-synth1 += synth1;
+synth1 = ((t&(t>>(synth[pc].a))) | (t&(t>>(synth[pc].b))) << 1);
 
 if(t == next_sin_time)
 {
