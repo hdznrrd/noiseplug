@@ -4,8 +4,8 @@
 #define PROGMEM /* nix */
 #endif
 
-#define APREGGIO_RANGE 3
-#define APREGGIO_DELAY 200
+#define APREGGIO_RANGE 4
+#define APREGGIO_DELAY 256
 
 #define BIT(x,n) (((x)&(1<<(n)))>>(n))
 #define SO(x) (sizeof((x))/sizeof(*(x)))
@@ -40,9 +40,11 @@ static inline uint8_t next_sin(const uint8_t step)
 uint8_t next_sample()
 {
 static uint16_t t=0;
+
 static uint8_t t8=0;
 static uint8_t barevent=0;
 static uint8_t bars=0;
+
 static uint8_t pc = 0;
 static uint8_t apreggiocnt = 1;
 
@@ -93,6 +95,7 @@ if(t % APREGGIO_DELAY == 0)
 
 synth1 = (t&(t>>(synth[pc].a))) | (t&(t>>(synth[pc].b)));
 synth1 += synth1;
+
 /*
 if(t == next_sin_time)
 {
