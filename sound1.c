@@ -1,7 +1,7 @@
 #include <inttypes.h>
 
-#define APREGGIO_RANGE 3
-#define APREGGIO_DELAY 200
+#define APREGGIO_RANGE 4
+#define APREGGIO_DELAY 256
 
 #define BIT(x,n) (((x)&(1<<(n)))>>(n))
 #define SO(x) (sizeof((x))/sizeof(*(x)))
@@ -34,14 +34,11 @@ uint8_t next_sample()
 {
 static uint16_t t=0;
 
-
-
 static uint8_t t8=0;
 static uint8_t barevent=0;
 static uint8_t bars=0;
 
-static struct { uint8_t a; uint8_t b; } synth[] = 
-{ { 7, 6}, {7, 5}, {7,5}, {6,5} };
+static struct { uint8_t a; uint8_t b; } synth[] = { { 7, 6}, {7, 5}, {7,5}, {6,5} };
 static uint8_t apreggiobase[] =	{ 3, 4, 4, 5 };
 static uint8_t bassdrum[] =	{ 1, 1, 1, 1 };
 static uint8_t snare[] = 	{ 1, 1, 1, 1 };
