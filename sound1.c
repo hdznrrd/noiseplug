@@ -92,13 +92,13 @@ if(t % APREGGIO_DELAY == 0)
 
 synth1 = t&t>>(synth[pc].a) | t&t>>(synth[pc].b);
 synth1 += synth1;
-/*
+
 if(t == next_sin_time)
 {
 	next_sin_time = 
 	synth2 = next_sin();
 }
-*/
+
 //synth2 = t<<(apreggiobase[pc]+apreggiocnt);
 
 // mix two synth lines
