@@ -54,7 +54,7 @@ int main()
 #define SAMPLE_L OCR0A
 	clock_prescale_set(clock_div_2);
 
-	DDRB = 1 << PB7; // PB7 == OC0A
+	DDRB = 1 << PB7 | 1 << PB2; // PB7 == OC0A
 	TCNT0 = 0;
 	OCR0A = 0;
 	TCCR0A = 3 << WGM00 | 2 << COM0A0;  // Fast PWM mode, positive polarity
@@ -91,18 +91,20 @@ int main()
 
 #ifdef __AVR_ATmega32U4__
 	DDRE = 1 << PE6;
+	uint16_t t = 0;
 #endif
 
 	while (1) {
 		sleep_mode();
 		if (int_ctr == 0) {
-			PORTB = 1 << PB2;
+			//PORTB = 1 << PB2;
 			SAMPLE_L = sample;
 			sample = next_sample();
-			PORTB = 0;
+			//PORTB = 0;
 
 #ifdef __AVR_ATmega32U4__
 			PORTE = (t & 4096) ? 1 << PE6 : 0;
+			t++;
 #endif
 		}
 	}
