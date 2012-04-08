@@ -114,10 +114,10 @@ else if(bassdelay > 0)			--bassdelay;
 
 
 // add bass drum
-//if(bassdelay>0) mix = next_sin(); }
+if(bassdelay>0) mix = next_sin();
 
 // add snare drum
-//if(snaredelay>0)	mix ^= (rnd & 7) << 3;
+if(snaredelay>0)	mix ^= (rnd & 7) << 3;
 
 ++t;
 // here comes the noize!
