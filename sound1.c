@@ -172,8 +172,9 @@ if(bassdelay>0) mix = next_sin(1);
 return mix;
 }
 
+#ifndef NOISEPLUG_BIATCH
 int main()
 {
 	while(1) putchar(next_sample());
 }
-
+#endif
