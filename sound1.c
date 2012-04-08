@@ -20,8 +20,6 @@ static inline unsigned char sin_adv()
 	return sin[sinoff];
 }
 
-int main()
-{
 unsigned short t=0;
 unsigned char t8=0;
 unsigned char barevent=0;
@@ -46,7 +44,7 @@ unsigned char synth1 = 0;
 unsigned char synth2 = 0;
 
 
-for(t=0;;++t)
+uint8_t next_sample(const uint16_t t)
 {
 unsigned char rnd = getRand();
 
@@ -113,8 +111,12 @@ else if(bassdelay > 0)			--bassdelay;
 //if(snaredelay>0)	mix ^= (rnd & 7) << 3;
 
 // here comes the noize!
-putchar(mix);
+return mix;
 }
 
+int main()
+{
+	for (uint16_t t = 0; ; t++)
+		putchar(next_sample(t));
 }
 
