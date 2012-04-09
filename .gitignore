@@ -1,4 +1,6 @@
 *.*~
+*.elf
+*.hex
 sound1
 sound2
 sound3
