@@ -5,6 +5,8 @@
 #endif
 
 #define arpeggio_DELAY 128
+#define BASS_DURATION 800
+#define SNARE_DURATION 200
 
 #define BIT(x,n) (((x)&(1<<(n)))>>(n))
 #define SO(x) (sizeof((x))/sizeof(*(x)))
@@ -34,21 +36,63 @@
 #define G2 22
 #define Gs2 23
 #define HOLD 24
+#define OFF 25
 
 static const PROGMEM uint8_t sin[] = {0, 49, 97, 141, 180, 212, 235, 250, 254, 250, 235, 212, 180, 141, 97, 49 };
 static const PROGMEM uint8_t octave_delay[] = { 36, 34, 32, 31, 29, 27, 26, 24, 23, 22, 20, 19, 18, 17, 16, 15, 14, 14, 13, 12, 11, 11, 10, 10 };
-static const PROGMEM struct { uint8_t a; uint8_t b; } synth[] = { { 7, 6}, {7, 5}, {7,5}, {6,5} };
-static const PROGMEM uint8_t arpeggiobase[] =	{ 3, 4, 4, 5 };
-static const PROGMEM uint8_t bassdrum[] =	{ 1, 1, 1, 1 };
-static const PROGMEM uint8_t snare[] = 	{ 1, 1, 1, 1 };
+
+
+#define PATTERNS (4)
+static const PROGMEM struct { uint8_t a; uint8_t b; } synth[PATTERNS] =
+{ { 7, 6}, {9,7}, {8,7}, {3,4} };
+static const PROGMEM uint8_t bassdrum[PATTERNS] =	{ 1, 1, 1, 1 };
+static const PROGMEM uint8_t snare[PATTERNS] = 	{ 1, 1, 1, 1 };
+
+#define DOUBLE_MASK (0x40)
+#define QUAD_MASK (0x80)
+#define OCTA_MASK (DOUBLE_MASK|QUAD_MASK)
+#define DOUBLE(x) ((x)|DOUBLE_MASK)
+#define QUAD(x)   ((x)|QUAD_MASK)
+#define OCTA(x)   ((x)|OCTA_MASK)
+//#define DOUBLE(x) ((x))
+//#define QUAD(x)   ((x))
+//#define OCTA(x)   ((x))
+static const PROGMEM uint8_t melody[] =
+{
+E1,
+F1,
+Fs1,
+G1,
+
+Gs1,
+A2,
+B2,
+E1,
+
+OFF,
+E1,
+OFF,
+E1,
+
+OFF,
+E1,
+OFF,
+E1,
+
+OFF,
+E1,
+E1,
+OFF,
+
+OFF,
+OFF,
+OFF,
+OFF,
+
+};
 
 static inline uint8_t next_note()
 {
-	static const PROGMEM uint8_t melody[] =
-	{
-		D2, 0, D2, 0, 0, 0, 0, 0, D2, 0, 
-		A1, 0, B1, 0, D2, 0, D2, 0, D2, 0
- };
 	static uint8_t idx=0;
 
 	const uint8_t v = melody[idx++];
@@ -59,6 +103,11 @@ static inline uint8_t next_note()
 	return v;
 }
 
+static inline uint8_t get_sin(const uint8_t idx)
+{
+	return sin[idx%SO(sin)];
+}
+
 static inline uint8_t next_rnd()
 {
 	static unsigned short rnd = 13373;
@@ -67,7 +116,7 @@ static inline uint8_t next_rnd()
 	rnd <<=1;
 	rnd |= f1^f2;
 
-	return sin[((uint8_t)rnd)%SO(sin)];
+	return get_sin(rnd);
 }
 
 static inline uint8_t next_sin(const uint8_t step)
@@ -83,7 +132,7 @@ uint8_t next_sample()
 {
 static uint16_t t=0;
 
-static uint8_t t8=0;
+static uint8_t timer =0;
 static uint8_t barevent=0;
 static uint8_t bars=0;
 
@@ -91,81 +140,99 @@ static uint8_t pc = 0;
 static uint8_t arpeggiocnt = 1;
 
 static uint16_t next_sin_time = 0;
-static uint8_t current_tone = 0;
-static uint8_t current_tone_base = 12;
+static uint8_t current_tone = OFF;
+static uint8_t current_tone_base = OFF;
 
-unsigned short snaredelay = 0;
-unsigned short bassdelay = 0;
+static unsigned short snaredelay = 0;
+static unsigned short bassdelay = 0;
 
-uint8_t synth1 = 0;
-uint8_t synth2 = 0;
+static uint8_t synth1 = 0;
+static uint8_t synth2 = 0;
 
-if(t%1024 == 0)
+static uint8_t sin_speed = 4;
+
+static uint8_t note_rep_cnt = 0;
+if(t%128 == 0)
 {
+
 	// implicit rollover of t roughly every 2 seconds
-	if(t==0) t8 = 0;
-	else ++t8;
+	if(t==0) timer = 0;
+	else ++timer;
 
 	// determine which note we're playing
-	barevent |= 8;
-	if(t8%2 == 0) barevent |= 4;
-	if(t8%4 == 0) barevent |= 2;
-	if(t8%8 == 0) barevent |= 1;
+	barevent |= 64;
+	if(timer%2 == 0) barevent |= 32;
+	if(timer%4 == 0) barevent |= 16;
+	if(timer%8 == 0) barevent |= 8;
+	if(timer%16 == 0) barevent |= 4;
+	if(timer%32 == 0) barevent |= 2;
+	if(timer%64 == 0) barevent |= 1;
 }
 else barevent = 0;
 
 if(barevent & 8)
 {
-	current_tone = current_tone_base = next_note();
+	if(note_rep_cnt == (current_tone>>5))
+	{
+		note_rep_cnt = 0;
+		current_tone = current_tone_base = next_note();
+	}
+	else ++note_rep_cnt;
+
+	if(current_tone&~OCTA_MASK != OFF)
+		next_sin_time = t + octave_delay[current_tone&~OCTA_MASK];
+	else
+		next_sin_time = 0;
 }
 
 // increment bar counter
 if(barevent & 1) ++bars;
 
 // increment pattern counter
-if(bars % 8 == 0)
+if(bars % 16 == 0)
 {
 	++pc;
-	pc %= SO(arpeggiobase);
-}
+	if(pc == PATTERNS)
+		pc = 0;
 
-// increment arpeggio
-if(t % arpeggio_DELAY == 0)
-{
-	// arpeggio
-	++arpeggiocnt;
-	arpeggiocnt &= 3;
-	current_tone = current_tone_base + arpeggiocnt+ arpeggiocnt+ arpeggiocnt+ arpeggiocnt;
 }
 
 // render synth
 
-synth1 = (t&(t>>(synth[pc].a))) | (t&(t>>(synth[pc].b)));
-synth1 += synth1;
+static uint8_t synthold1 = 0;
+static uint8_t synthold2 = 0;
+synthold2 = synthold1;
+synthold1 = synth1;
+synth1 = 0xfff0 & ( (t&t>>(synth[pc].a)) + (~t&t>>(synth[pc].b)) );
 
 if(t == next_sin_time)
 {
-	next_sin_time += octave_delay[current_tone];
-	synth2 = next_sin(5);
+	
+	if((current_tone&~OCTA_MASK) != OFF)
+	{
+	  next_sin_time += octave_delay[current_tone&~OCTA_MASK];
+		synth2 = ~synth2;//next_sin(sin_speed);
+	}
+	else synth2 = 0;
 }
 
 // mix two synth lines
-unsigned int mix = (synth1>>1) | (synth2>>1);
+unsigned int mix = (synth1>>1) + (synth2>>1);
 
 // load or decrement snare delay
-if(barevent & 8 && snare[pc])	snaredelay = 800;
+if(barevent & 8 && snare[pc])	snaredelay = SNARE_DURATION;
 else if(snaredelay > 0)		--snaredelay;
 
 // add snare drum
-if(snaredelay>0)	mix = (next_rnd() & 7) << 3;
+if(snaredelay>0)	mix ^= (next_rnd() & 7) << 3;
 
 
 // load or decrement bass delay
-if(barevent & 4 && bassdrum[pc])	bassdelay = 800;
+if(barevent & 4 && bassdrum[pc])	bassdelay = BASS_DURATION;
 else if(bassdelay > 0)			--bassdelay;
 
 // add bass drum
-if(bassdelay>0) mix = next_sin(1);
+if(bassdelay>0) mix = get_sin(t>>7);
 
 ++t;
 // here comes the noize!
